@@ -1,0 +1,24 @@
+{
+  "name": "complianceops-notifierservice",
+  "version": "1.0.0",
+  "description": "Notifier Service for Compliance Ops\r This service will read from SQS which is updated by Transaction Service and based on the Queue, will dispatch an alert.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thechawla225/complianceops-notifierservice.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/thechawla225/complianceops-notifierservice/issues"
+  },
+  "homepage": "https://github.com/thechawla225/complianceops-notifierservice#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
