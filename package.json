@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/thechawla225/complianceops-notifierservice#readme",
   "dependencies": {
+    "@aws-sdk/client-sqs": "^3.1131.0",
     "express": "^5.2.1"
   }
 }
