@@ -9,4 +9,4 @@ WORKDIR /app
 RUN useradd -m appuser
 COPY --from=build /app .
 USER appuser
-CMD ["node", "index.js"]
+CMD ["node", "src/index.js"]
