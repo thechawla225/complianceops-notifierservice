@@ -1,10 +1,10 @@
-FROM node:20-slim AS build
+FROM node:24-slim AS build
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 
-FROM node:20-slim
+FROM node:24-slim
 WORKDIR /app
 RUN useradd -m appuser
 COPY --from=build /app .
