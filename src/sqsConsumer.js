@@ -1,18 +1,21 @@
 "use strict";
- 
+
 const { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } = require("@aws-sdk/client-sqs");
 const config = require("./config");
 const { parseFlaggedTransactionMessage } = require("./messageParser");
 const { dispatchAlert } = require("./webhookDispatcher");
- 
+
 function buildClient() {
   return new SQSClient({
     endpoint: config.sqsEndpointUrl || undefined,
     region: config.awsRegion,
-    credentials: { accessKeyId: config.awsAccessKeyId, secretAccessKey: config.awsSecretAccessKey },
+    // Only pass static keys when given; otherwise the SDK picks up IRSA
+    credentials: config.awsAccessKeyId
+      ? { accessKeyId: config.awsAccessKeyId, secretAccessKey: config.awsSecretAccessKey }
+      : undefined,
   });
 }
- 
+
 async function pollOnce(client) {
   const received = await client.send(
     new ReceiveMessageCommand({
@@ -21,7 +24,7 @@ async function pollOnce(client) {
       WaitTimeSeconds: 10,
     })
   );
- 
+
   const messages = received.Messages || [];
   for (const message of messages) {
     try {
@@ -35,12 +38,12 @@ async function pollOnce(client) {
       new DeleteMessageCommand({ QueueUrl: config.sqsQueueUrl, ReceiptHandle: message.ReceiptHandle })
     );
   }
- 
+
   return messages.length;
 }
- 
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
- 
+
 // Actual polling loop. This will run forever until the process is killed.
 async function startPolling(client = buildClient()) {
   console.log(`[notifier] polling ${config.sqsQueueUrl} ...`);
@@ -48,10 +51,11 @@ async function startPolling(client = buildClient()) {
     try {
       await pollOnce(client);
     } catch (err) {
-      console.error(`[notifier] poll cycle failed: ${err.message}`);
+      // err.message can be empty (e.g. connection errors), so log the name too
+      console.error(`[notifier] poll cycle failed: ${err.name}: ${err.message}`);
       await sleep(2000);
     }
   }
 }
- 
+
 module.exports = { buildClient, pollOnce, startPolling };
