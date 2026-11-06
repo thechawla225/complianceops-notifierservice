@@ -4,6 +4,7 @@ const { SQSClient, ReceiveMessageCommand, DeleteMessageCommand } = require("@aws
 const config = require("./config");
 const { parseFlaggedTransactionMessage } = require("./messageParser");
 const { dispatchAlert } = require("./webhookDispatcher");
+const { messagesProcessed, pollErrors, lastSuccessfulPoll } = require("./metrics");
 
 function buildClient() {
   return new SQSClient({
@@ -30,7 +31,9 @@ async function pollOnce(client) {
     try {
       const event = parseFlaggedTransactionMessage(message.Body);
       dispatchAlert(event);
+      messagesProcessed.inc({ result: "dispatched" });
     } catch (err) {
+      messagesProcessed.inc({ result: "invalid" });
       console.error(`[notifier] failed to process message ${message.MessageId}: ${err.message}`);
     }
 
@@ -44,18 +47,28 @@ async function pollOnce(client) {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// One iteration of the loop, separate so its error handling and metrics can be tested. Returns false on failure.
+async function pollCycle(client) {
+  try {
+    await pollOnce(client);
+    lastSuccessfulPoll.setToCurrentTime();
+    return true;
+  } catch (err) {
+    pollErrors.inc({ error: err.name || "Error" });
+    // err.message can be empty (e.g. connection errors), so log the name too
+    console.error(`[notifier] poll cycle failed: ${err.name}: ${err.message}`);
+    return false;
+  }
+}
+
 // Actual polling loop. This will run forever until the process is killed.
 async function startPolling(client = buildClient()) {
   console.log(`[notifier] polling ${config.sqsQueueUrl} ...`);
   for (;;) {
-    try {
-      await pollOnce(client);
-    } catch (err) {
-      // err.message can be empty (e.g. connection errors), so log the name too
-      console.error(`[notifier] poll cycle failed: ${err.name}: ${err.message}`);
+    if (!(await pollCycle(client))) {
       await sleep(2000);
     }
   }
 }
 
-module.exports = { buildClient, pollOnce, startPolling };
+module.exports = { buildClient, pollOnce, pollCycle, startPolling };

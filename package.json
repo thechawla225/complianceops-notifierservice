@@ -20,7 +20,8 @@
   "homepage": "https://github.com/thechawla225/complianceops-notifierservice#readme",
   "dependencies": {
     "@aws-sdk/client-sqs": "^3.1131.0",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "prom-client": "^15.1.3"
   },
   "devDependencies": {
     "aws-sdk-client-mock": "^4.1.0",
